@@ -14,7 +14,10 @@ import {
 } from "../utils/validation.util.js";
 import { ApiError } from "../utils/errorHandling.util.js";
 import { ApiResponse } from "../utils/apiResponse.util.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
+import {
+  deleteOnCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.util.js";
 import { generateTokens } from "../utils/generateTokens.util.js";
 import type { ObjectId } from "mongoose";
 import { cookieOptions } from "../constants/global.constant.js";
@@ -28,7 +31,7 @@ export const registerUser = tryCatch(async (req, res, next) => {
   const { name, email, password }: TUserRegisterRequestBody = req.body;
   // 2. check if anything is empty
   if (isAnythingEmpty(name, email, password)) {
-    return next(new ApiError(400, "All fields are required!"));
+    return next(new ApiError(400, "Name, email and password are required!"));
   }
   // 3. check if user is already registered
   let user = await User.findOne({ email });
@@ -55,7 +58,7 @@ export const registerUser = tryCatch(async (req, res, next) => {
     .status(200)
     .cookie("accessToken", accessToken, cookieOptions)
     .cookie("refreshToken", refreshToken, cookieOptions)
-    .json(new ApiResponse(200, "User created successfully!", { user }));
+    .json(new ApiResponse(200, "User registered successfully!", { user }));
 });
 
 // 2. POST
@@ -72,7 +75,7 @@ export const loginUser = tryCatch(async (req, res, next) => {
   // 3. Find user
   let user = await User.findOne({ email });
   if (!user) {
-    return next(new ApiError(400, "User doesn't exist!"));
+    return next(new ApiError(400, "Email or password is incorrect!"));
   }
   // 4. Check password is correct or not
   const isPasswordCorrect = await user.isPasswordCorrect(password);
@@ -137,8 +140,11 @@ export const sendFriendRequest = tryCatch(async (req, res, next) => {
     await User.findById(senderId),
     await User.findById(receiverId),
   ]);
+  if (!sender) {
+    return next(new ApiError(400, "Unauthorized access!"));
+  }
   if (!sender || !receiver) {
-    return next(new ApiError(400, "Sender or receiver not found!"));
+    return next(new ApiError(400, "Receiver not found!"));
   }
   // 4. Check if receiver is already friend of sender
   const isReceiverAlreadyFriendOfSender = sender.friends.find(
@@ -199,8 +205,11 @@ export const acceptFriendRequest = tryCatch(async (req, res, next) => {
     await User.findById(senderId),
     await User.findById(receiverId),
   ]);
-  if (!sender || !receiver) {
-    return next(new ApiError(400, "Sender or receiver not found!"));
+  if (!sender) {
+    return next(new ApiError(400, "Sender not found!"));
+  }
+  if (!receiver) {
+    return next(new ApiError(400, "Receiver not found!"));
   }
   // 3. Check receiver is already friend of sender
   const isReceiverAlreadyFriendOfSender = sender.friends.find(
@@ -244,7 +253,7 @@ export const acceptFriendRequest = tryCatch(async (req, res, next) => {
 // route: /api/v1/user/list
 // PRIVATE
 // does: list all users
-export const getAllUsers = tryCatch(async (req, res, next) => {
+export const listUsers = tryCatch(async (req, res, next) => {
   // 1. Get the data
   const { _id } = req.user;
   // 2. Find the users and send a response
@@ -260,7 +269,7 @@ export const getAllUsers = tryCatch(async (req, res, next) => {
 // route: /api/v1/user/request/list
 // PRIVATE
 // does: list all user's pending requests
-export const getAllFriendRequests = tryCatch(async (req, res, next) => {
+export const listFriendRequests = tryCatch(async (req, res, next) => {
   // 1. Get user id
   const { _id } = req.user;
   // 2. Find user and populate requests if exists
@@ -385,4 +394,41 @@ export const updateUser = tryCatch(async (req, res, next) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "User updated successfully!", { user }));
+});
+
+// 11. PATCH
+// route: /api/v1/user/update/avatar
+// PRIVATE
+// does: update only user avatar and delete the old one
+export const updateUserAvatar = tryCatch(async (req, res, next) => {
+  // 1. Get New Avatar Local File Path
+  const avatarLocalFilePath = req.file?.path;
+  const { _id } = req.user;
+  if (!avatarLocalFilePath) {
+    return next(new ApiError(400, "Please provide an avatar!"));
+  }
+  // 2. Find the user avatar if it is not present then upload new one and delete the old one if present
+  let user = await User.findById(_id);
+  if (user && user.avatar) {
+    await deleteOnCloudinary(user.avatar);
+  }
+
+  const updatedAvatar = await uploadOnCloudinary(avatarLocalFilePath);
+  if (!updatedAvatar?.url) {
+    return next(new ApiError(400, "Couldn't get new updated avatar!"));
+  }
+
+  // 3. Update new avatar and delete the old one stored on cloudinary
+  user = await User.findByIdAndUpdate(
+    _id,
+    {
+      $set: { avatar: updatedAvatar.url },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  // 4. Return a response
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Avatar updated successfully!", { user }));
 });

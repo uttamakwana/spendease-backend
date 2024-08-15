@@ -13,11 +13,17 @@ import type {
   TDeleteExpenseRequestBody,
   TGetAllExpensesOfFriendRequestBody,
   TSettleAllExpensesOfFriendRequestBody,
+  TSettleAllExpenseRejectRequestBody,
+  TSettleIndividualExpensesOfFriendRequestBody,
   TUpdatePersonalExpenseRequestBody,
   TUpdateSplitExpenseRequestBody,
+  TSettleIndividualExpenseRejectRequestBody,
 } from "../types/expense.type.js";
 import { Types, type ObjectId } from "mongoose";
 import { getFriendExpenses } from "../utils/expense.util.js";
+import { User } from "../models/user.model.js";
+import type { TFriendSchema } from "../types/user.type.js";
+import { hasDuplicateSplittedForId } from "../utils/helper.util.js";
 
 // 1. POST
 // route: api/v1/expense/create/personal
@@ -76,16 +82,28 @@ export const createSplitExpense = tryCatch(async (req, res, next) => {
     return next(new ApiError(400, "Splitted data is required!"));
   }
   // 3. Split an expense
+  // check if splits contains duplicate splittedFor ids
+  if (hasDuplicateSplittedForId(splits)) {
+    return next(new ApiError(400, "Duplicate splittedFor id!"));
+  }
   // check if our id is contained here or not
   const userIdFoundInSplits = splits.find(
-    (e) => e.userId.toString() === (_id as ObjectId).toString()
+    (e) => e.splittedFor.toString() === _id.toString()
   );
   if (userIdFoundInSplits) {
     return next(new ApiError(400, "Provide valid ids!"));
   }
+
+  const splittedForIds = splits.map((split) => split.splittedFor);
+
+  const splittedUsers = await User.find({ _id: { $in: splittedForIds } });
+  if (splittedUsers.length !== splits.length) {
+    return next(new ApiError(400, "Can't split an expense!"));
+  }
+
   // check if the splitted amount is greater than the original amount
   const splittedAmount = splits.reduce(
-    (total, currentValue) => total + currentValue.amount,
+    (total, currentValue) => total + currentValue.splittedAmount,
     0
   );
   // ATTENTION: right now we are keeping the splitted amount as zero
@@ -208,7 +226,7 @@ export const updateSplitExpense = tryCatch(async (req, res, next) => {
   // checking if the splitted amount between friends is greater than actual amount or not
   // check if splits contains your id
   const userIdInSplits = updatedData.splits?.find(
-    (e) => e.userId.toString() === (_id as ObjectId).toString()
+    (e) => e.splittedFor.toString() === (_id as ObjectId).toString()
   );
 
   if (userIdInSplits) {
@@ -217,7 +235,7 @@ export const updateSplitExpense = tryCatch(async (req, res, next) => {
 
   const splittedAmount =
     updatedData.splits?.reduce(
-      (total, currentValue) => total + currentValue.amount,
+      (total, currentValue) => total + currentValue.splittedAmount,
       0
     ) || 0;
 
@@ -317,25 +335,181 @@ export const getAllExpensesOfFriend = tryCatch(async (req, res, next) => {
   return res.status(200).json(
     new ApiResponse(200, "Friend expenses retrieved successfully!", {
       expenses: response?.expenses || [],
-      finalAmount: response?.finalAmount || 0,
+      analysis: response?.analysis,
     })
   );
 });
 
 // 8. POST
-// route: api/v1/expense/settle/all
+// route: api/v1/expense/settle/request/send/all
 // PRIVATE
 // does: settle all expenses
-export const settleAllExpenses = tryCatch(async (req, res, next) => {
+export const sendSettleAllExpenseRequest = tryCatch(async (req, res, next) => {
   // 1. Get the data
   const { targetUserId }: TSettleAllExpensesOfFriendRequestBody = req.body;
   const { _id } = req.user;
-  const targetUserObjectId = new Types.ObjectId(targetUserId);
-
-  return res.status(200).json(new ApiResponse(200, "Settled all expenses!"));
+  // 2. Find the target user exist or not and also check if the final amount between your expense is negative or not
+  const response = await getFriendExpenses(_id, targetUserId, next);
+  if (response && response.analysis.friendExpenseCount === 0) {
+    return next(new ApiError(400, "No expenses to settle!"));
+  }
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    return next(new ApiError(400, "User not found!"));
+  }
+  // 3. Find user's settle all request already exist or not
+  const isUserIdExistInTargetUserSettleExpenseRequests =
+    targetUser.settleExpenseRequests.find(
+      (settleExpenseRequest) =>
+        settleExpenseRequest.requestedBy?.toString() === _id.toString()
+    );
+  if (isUserIdExistInTargetUserSettleExpenseRequests) {
+    return next(new ApiError(400, "Already sent a settle all request!"));
+  }
+  // 4. Add user's id in the settle requests of target user
+  targetUser.settleExpenseRequests.push({
+    requestedBy: _id,
+    isSettleAll: true,
+  });
+  await targetUser.save();
+  // 5. return a response
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, "Settle all expenses request send successfully!")
+    );
 });
 
 // 9. POST
-// route: api/v1/expense/settle/individual
+// route: api/v1/expense/settle/request/send/individual
 // PRIVATE
-// does: settle an individual expense
+// does: settle all expenses
+export const sendSettleIndividualExpenseRequest = tryCatch(
+  async (req, res, next) => {
+    // 1. Get the data
+    const {
+      expenseId,
+      targetUserId,
+    }: TSettleIndividualExpensesOfFriendRequestBody = req.body;
+    const { _id } = req.user;
+    // 2. Find the target expense exist or not
+    const targetExpense = await Expense.findById(expenseId);
+    const targetUser = await User.findById(targetUserId);
+    if (!targetExpense) {
+      return next(new ApiError(400, "Expense not exists!"));
+    }
+    if (!targetUser) {
+      return next(new ApiError(400, "User not exists!"));
+    }
+    // 3. Find user's settle all request already exist or not
+    const isUserIdExistInTargetUserSettleExpenseRequests =
+      targetUser.settleExpenseRequests.find(
+        (settleExpenseRequest) =>
+          settleExpenseRequest.requestedBy?.toString() === _id.toString() &&
+          settleExpenseRequest.expenseId?.toString() === expenseId.toString()
+      );
+    if (isUserIdExistInTargetUserSettleExpenseRequests) {
+      return next(
+        new ApiError(400, "Already sent a settle individual request!")
+      );
+    }
+    // 4. Add user's id in the settle requests of target user
+    targetUser.settleExpenseRequests.push({
+      requestedBy: _id,
+      expenseId,
+      isSettleAll: false,
+    });
+    await targetUser.save();
+    // 5. return a response
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, "Settle all expenses request send successfully!")
+      );
+  }
+);
+
+// 10. DELETE
+// route: /api/v1/expense/settle/reject/request/all
+// PRIVATE
+// does: delete an existing settle request
+export const rejectSettleAllExpenseRequest = tryCatch(
+  async (req, res, next) => {
+    // 1. Get the data
+    const { requestedBy }: TSettleAllExpenseRejectRequestBody = req.body;
+    const { _id } = req.user;
+
+    // 2. Check if the required data is present or not
+    if (!requestedBy) {
+      return next(new ApiError(400, "RequestedBy ID is required!"));
+    }
+
+    // 3. Find if request is already exist or not
+    const user = await User.findById(_id);
+    const isRequestExist = user?.settleExpenseRequests.find(
+      (settleExpenseRequest) =>
+        settleExpenseRequest.requestedBy.toString() === requestedBy.toString()
+    );
+    if (!isRequestExist || !user) {
+      return next(new ApiError(400, "Request doesn't exist!"));
+    }
+    // 4. Delete the request
+    user.settleExpenseRequests = user?.settleExpenseRequests.filter(
+      (settleExpenseRequest) =>
+        settleExpenseRequest.requestedBy.toString() !== requestedBy.toString()
+    );
+    await user.save();
+    // 5. Return a response
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Request rejected successfully!"));
+  }
+);
+
+// 11. DELETE
+// route: /api/v1/expense/settle/reject/request/individual
+// PRIVATE
+// does: delete an existing settle request
+export const rejectSettleIndividualExpenseRequest = tryCatch(
+  async (req, res, next) => {
+    // 1. Get the data
+    const {
+      requestedBy,
+      expenseId,
+    }: TSettleIndividualExpenseRejectRequestBody = req.body;
+    const { _id } = req.user;
+
+    // 2. Check if the required data is present or not
+    if (!requestedBy || !expenseId) {
+      return next(new ApiError(400, "requestedBy and expenseId are required!"));
+    }
+
+    // 3. Find if request is already exist or not
+    const user = await User.findById(_id);
+    const isRequestExist = user?.settleExpenseRequests.find(
+      (settleExpenseRequest) =>
+        settleExpenseRequest.requestedBy.toString() ===
+          requestedBy.toString() &&
+        settleExpenseRequest.expenseId?.toString() === expenseId.toString()
+    );
+    if (!isRequestExist || !user) {
+      return next(new ApiError(400, "Request doesn't exist!"));
+    }
+    // 4. Delete the request
+    user.settleExpenseRequests = user?.settleExpenseRequests.filter(
+      (settleExpenseRequest) => {
+        if (settleExpenseRequest.expenseId) {
+          return (
+            settleExpenseRequest.requestedBy.toString() !==
+            requestedBy.toString()
+          );
+        } else return true;
+      }
+    );
+    await user.save();
+    // 5. Return a response
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Request rejected successfully!"));
+  }
+);

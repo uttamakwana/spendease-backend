@@ -15,10 +15,10 @@ export type TExpenseSchema = {
 };
 
 export type TSplittedExpenseSchema = {
-  userId: TUserId;
-  amount: number;
-  description: string;
-  isSettled: boolean;
+  splittedFor: TUserId;
+  splittedAmount: number;
+  splittedDescription: string;
+  isSplittedSettled: boolean;
 };
 
 export type TCreatePersonalExpenseRequestBody = Pick<
@@ -42,18 +42,34 @@ export type TUpdateSplitExpenseRequestBody = TCreateSplitExpenseRequestBody & {
 
 export type TDeleteExpenseRequestBody = { expenseId: TExpenseId };
 
-export type TGetAllExpensesOfFriendRequestBody = { targetUserId: string };
+export type TGetAllExpensesOfFriendRequestBody = { targetUserId: ObjectId };
 
-export type TSettleAllExpensesOfFriendRequestBody = { targetUserId: string };
+export type TSettleAllExpensesOfFriendRequestBody = {
+  targetUserId: ObjectId;
+};
+
+export type TSettleIndividualExpensesOfFriendRequestBody = {
+  targetUserId: ObjectId;
+  expenseId: ObjectId;
+};
+
+export type TSettleAllExpenseRejectRequestBody = {
+  requestedBy: ObjectId;
+};
+
+export type TSettleIndividualExpenseRejectRequestBody = {
+  requestedBy: ObjectId;
+  expenseId: ObjectId;
+};
 
 export type TGetAllExpensesOfFriendResponse = {
   _id: ObjectId;
   amount: TExpenseSchema["amount"];
   description: TExpenseSchema["description"];
   category: ExpenseCategory;
-  splittedAmount: TSplittedExpenseSchema["amount"];
-  splittedDescription: TSplittedExpenseSchema["description"];
-  isSettled: TSplittedExpenseSchema["isSettled"];
+  splittedAmount: TSplittedExpenseSchema["splittedAmount"];
+  splittedDescription: TSplittedExpenseSchema["splittedDescription"];
+  isSettled: TSplittedExpenseSchema["isSplittedSettled"];
   createdAt: Date;
   updatedAt: Date;
   isCreatedByYou: boolean;

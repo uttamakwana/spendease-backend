@@ -5,7 +5,10 @@ import {
   deleteExpense,
   getAllExpenses,
   getAllExpensesOfFriend,
-  settleAllExpenses,
+  rejectSettleAllExpenseRequest,
+  rejectSettleIndividualExpenseRequest,
+  sendSettleAllExpenseRequest,
+  sendSettleIndividualExpenseRequest,
   updatePersonalExpense,
   updateSplitExpense,
 } from "../controllers/expense.controller.js";
@@ -29,5 +32,19 @@ expenseRouter.route("/delete").delete(isAuth, deleteExpense);
 expenseRouter.route("/all").get(isAuth, getAllExpenses);
 // 7. Get All Expense of Friend (Private)
 expenseRouter.route("/friend/list").get(isAuth, getAllExpensesOfFriend);
-// 8. Settle All Expense of Friend (Private)
-expenseRouter.route("/settle/all").post(isAuth, settleAllExpenses);
+// 8. Send Settle All Expense of Friend (Private)
+expenseRouter
+  .route("/settle/request/send/all")
+  .post(isAuth, sendSettleAllExpenseRequest);
+// 9. Send Settle Individual Expense of Friend (Private)
+expenseRouter
+  .route("/settle/request/send/individual")
+  .post(isAuth, sendSettleIndividualExpenseRequest);
+// 10. Reject Settle All Expense of Friend (Private)
+expenseRouter
+  .route("/settle/request/reject/all")
+  .delete(isAuth, rejectSettleAllExpenseRequest);
+// 11. Reject Settle Individual Expense of Friend (Private)
+expenseRouter
+  .route("/settle/request/reject/individual")
+  .delete(isAuth, rejectSettleIndividualExpenseRequest);

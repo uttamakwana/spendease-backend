@@ -7,17 +7,19 @@ import type { TGetAllExpensesOfFriendResponse } from "../types/expense.type.js";
 
 type TGetFriendExpensesReturn = {
   expenses: TGetAllExpensesOfFriendResponse[];
-  finalAmount: number;
+  analysis: {
+    amount: number;
+    userExpenseCount: number;
+    friendExpenseCount: number;
+  };
 } | void;
 
 export const getFriendExpenses = async (
   _id: ObjectId,
-  targetUserId: string,
+  targetUserId: ObjectId,
   next: NextFunction
 ): Promise<TGetFriendExpensesReturn> => {
   try {
-    const targetUserObjectId = new Types.ObjectId(targetUserId);
-
     if (!targetUserId) {
       return next(new ApiError(400, "TargetUserId is required!"));
     }
@@ -25,6 +27,10 @@ export const getFriendExpenses = async (
     // Find the friend user
     const user = await User.findById(_id);
     if (!user) {
+      return next(new ApiError(400, "User not found!"));
+    }
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
       return next(new ApiError(400, "User not found!"));
     }
 
@@ -61,7 +67,7 @@ export const getFriendExpenses = async (
       await Expense.aggregate([
         {
           $match: {
-            userId: _id,
+            userId: user._id,
             isPersonal: false,
           },
         },
@@ -70,7 +76,7 @@ export const getFriendExpenses = async (
         },
         {
           $match: {
-            "splits.userId": targetUserObjectId,
+            "splits.splittedFor": targetUser._id,
           },
         },
         {
@@ -79,9 +85,9 @@ export const getFriendExpenses = async (
             amount: "$amount",
             description: "$description",
             category: 1,
-            splittedAmount: "$splits.amount",
-            splittedDescription: "$splits.description",
-            isSettled: "$splits.isSettled",
+            splittedAmount: "$splits.splittedAmount",
+            splittedDescription: "$splits.splittedDescription",
+            isSettled: "$splits.isSplittedSettled",
             createdAt: 1,
             updatedAt: 1,
           },
@@ -96,7 +102,7 @@ export const getFriendExpenses = async (
       await Expense.aggregate([
         {
           $match: {
-            userId: targetUserObjectId,
+            userId: targetUser._id,
             isPersonal: false,
           },
         },
@@ -105,7 +111,7 @@ export const getFriendExpenses = async (
         },
         {
           $match: {
-            "splits.userId": _id,
+            "splits.splittedFor": user._id,
           },
         },
         {
@@ -114,9 +120,9 @@ export const getFriendExpenses = async (
             amount: "$amount",
             description: "$description",
             category: 1,
-            splittedAmount: "$splits.amount",
-            splittedDescription: "$splits.description",
-            isSettled: "$splits.isSettled",
+            splittedAmount: "$splits.splittedAmount",
+            splittedDescription: "$splits.splittedDescription",
+            isSettled: "$splits.isSplittedSettled",
             createdAt: 1,
             updatedAt: 1,
           },
@@ -130,16 +136,23 @@ export const getFriendExpenses = async (
 
     const finalArray = [...userFriendExpenses, ...targetUserFriendsExpenses];
 
-    const finalAmount = finalArray?.reduce((acc, currentValue) => {
-      if (currentValue.isCreatedByYou && !currentValue.isSettled) {
-        acc = acc + currentValue.splittedAmount;
-      } else {
-        acc = acc - currentValue.splittedAmount;
-      }
-      return acc;
-    }, 0);
+    const analysis = finalArray?.reduce(
+      (acc, currentValue) => {
+        if (currentValue.isCreatedByYou && !currentValue.isSettled) {
+          acc.amount = acc.amount + currentValue.splittedAmount;
+          acc.userExpenseCount += 1;
+        } else {
+          acc.amount = acc.amount - currentValue.splittedAmount;
+          acc.friendExpenseCount += 1;
+        }
+        return acc;
+      },
+      { amount: 0, userExpenseCount: 0, friendExpenseCount: 0 }
+    );
 
-    return { expenses: finalArray, finalAmount };
+    console.log(finalArray);
+
+    return { expenses: finalArray, analysis };
   } catch (error) {
     throw new ApiError(500, "Error fetching friend expenses");
   }

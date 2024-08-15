@@ -1,10 +1,13 @@
 import { ExpenseCategory } from "../constants/expense.constant.js";
 
+// Helper function to check if a single value is empty
+const isValueEmpty = (value: unknown): value is null | undefined | "" => {
+  return value === undefined || value === null || value === "";
+};
+
 // does: check if anything is empty or not
 export const isAnythingEmpty = (...values: unknown[]): boolean => {
-  return values.some(
-    (value) => value === undefined || value === null || value === ""
-  );
+  return values.some(isValueEmpty);
 };
 
 // does: check if everything is empty or not

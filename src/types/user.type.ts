@@ -7,7 +7,7 @@ export type TUserSchema = {
   avatar: string;
   password: string;
   friendRequests: Array<TFriendRequestsSchema>;
-  settleRequests: Array<TSettleExpenseRequestsSchema>;
+  settleExpenseRequests: Array<TSettleExpenseRequestsSchema>;
   friends: Array<TFriendSchema>;
   refreshToken?: string;
   generateAccessToken: () => string;
@@ -25,7 +25,7 @@ export type TFriendSchema = {
 
 export type TSettleExpenseRequestsSchema = {
   requestedBy: ObjectId;
-  expenseId: ObjectId;
+  expenseId?: ObjectId;
   isSettleAll: boolean;
 } & Partial<Document>;
 

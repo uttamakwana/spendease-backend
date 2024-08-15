@@ -2,14 +2,15 @@ import { Router } from "express";
 import {
   acceptFriendRequest,
   listFriends,
-  getAllFriendRequests,
-  getAllUsers,
+  listFriendRequests,
+  listUsers,
   loginUser,
   logoutUser,
   registerUser,
   sendFriendRequest,
   rejectFriendRequest,
   updateUser,
+  updateUserAvatar,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { isAuth } from "../middlewares/auth.middleware.js";
@@ -17,24 +18,28 @@ import { isAuth } from "../middlewares/auth.middleware.js";
 // constants
 export const userRouter = Router();
 
-// routes
-// 1. User Registration (Public)
+// user routes
+// 1. Register (PUBLIC)
 userRouter.route("/register").post(upload.single("avatar"), registerUser);
-// 2. User Login (Public)
+// 2. Login (PUBLIC)
 userRouter.route("/login").post(loginUser);
-// 3. User Logout (Private)
+// 3. Logout (PRIVATE)
 userRouter.route("/logout").post(isAuth, logoutUser);
-// 4. User Send Request (Private)
-userRouter.route("/send-request").post(isAuth, sendFriendRequest);
-// 5. User Accept Request (Private)
-userRouter.route("/accept-request").post(isAuth, acceptFriendRequest);
-// 6. User Accept Request (Private)
-userRouter.route("/reject-request").delete(isAuth, rejectFriendRequest);
-// 7. User List
-userRouter.route("/list").get(isAuth, getAllUsers);
-// 8. User List by Requests
-userRouter.route("/request/list").get(isAuth, getAllFriendRequests);
-// 9. User List by Friends
-userRouter.route("/friend/list").get(isAuth, listFriends);
-// 10. User Update
+// 4. Send Request (PRIVATE)
+userRouter.route("/request/send").post(isAuth, sendFriendRequest);
+// 5. Accept Request (PRIVATE)
+userRouter.route("/request/accept").post(isAuth, acceptFriendRequest);
+// 6. Reject/Delete/Remove Request (PRIVATE)
+userRouter.route("/request/reject").delete(isAuth, rejectFriendRequest);
+// 7. List Users (PRIVATE)
+userRouter.route("/list").get(isAuth, listUsers);
+// 8. List Friend Requests (PRIVATE)
+userRouter.route("/list/request").get(isAuth, listFriendRequests);
+// 9. List Friends (PRIVATE)
+userRouter.route("/list/friend").get(isAuth, listFriends);
+// 10. Update (PRIVATE)
 userRouter.route("/update").put(isAuth, updateUser);
+// 10. Update Avatar (PRIVATE)
+userRouter
+  .route("/update/avatar")
+  .patch(isAuth, upload.single("avatar"), updateUserAvatar);

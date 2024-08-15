@@ -79,7 +79,7 @@ const UserSchema = new mongoose.Schema<TUserSchema>(
       max: [20, "Password doesn't required more than 20 characters!"],
     },
     friendRequests: [FriendRequestsSchema],
-    settleRequests: [SettleExpenseRequestsSchema],
+    settleExpenseRequests: [SettleExpenseRequestsSchema],
     friends: [FriendSchema],
     refreshToken: {
       type: String,
@@ -90,7 +90,7 @@ const UserSchema = new mongoose.Schema<TUserSchema>(
 );
 
 // custom user schema middleware
-// does: whenever user is creating/password is updating, it will create a new hashed password and will save the hashed password
+// does: the below function executes before user saves but only when password is modifying otherwise it will skip to the next middleware/controller
 UserSchema.pre<TUserSchema>("save", async function (next) {
   if (!this.isModified("password")) return next();
 
