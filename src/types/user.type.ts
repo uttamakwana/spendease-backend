@@ -25,19 +25,3 @@ export type TRegisterUserAPIRequestBody = Pick<
 
 // user login
 export type TLoginUserAPIRequestBody = Pick<TUserSchema, "email" | "password">;
-
-export type TUserSendRequestBody = {
-  receiverId: ObjectId;
-};
-
-export type TUserAcceptRequestBody = {
-  receiverId: ObjectId;
-};
-
-export type TUserRejectRequestBody = {
-  requestedBy: ObjectId;
-};
-
-export type TUserUpdateRequestBody = Partial<
-  Pick<TUserSchema, "name" | "email" | "password">
->;

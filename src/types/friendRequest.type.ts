@@ -6,3 +6,20 @@ export type TFriendRequestSchema = {
 } & Document;
 
 export type TFriendRequestModel = TFriendRequestSchema;
+
+export type TSendFriendRequestAPIRequestBody = {
+  receiverId: ObjectId;
+};
+
+export type TAcceptFriendRequestAPIRequestBody = {
+  friendRequestSenderId: ObjectId;
+};
+
+export type TRejectFriendRequestAPIRequestBody = {
+  friendRequestId: ObjectId;
+};
+
+export type TRemoveFriendRequestAPIRequestBody = {
+  friendRequestId: ObjectId;
+  friendRequestReceiverId: ObjectId;
+};

@@ -230,3 +230,25 @@ export const updateUserAvatar = tryCatch(async (req, res, next) => {
     .status(200)
     .json(new ApiResponse(200, "Avatar updated successfully!", { user }));
 });
+
+// 8. GET
+// route: user/search
+// PRIVATE
+// does: search user from the all user list
+export const searchUsers = tryCatch(async (req, res, next) => {
+  // Step 1. Get req query data
+  const { name } = req.query;
+  const { _id } = req.user;
+  if (!name || typeof name !== "string") {
+    return next(new ApiError(400, "Please provide a valid name!"));
+  }
+  // Step 2. Search for the users in the database with valid query and exclude our name
+  const users = await User.find({
+    _id: { $ne: _id },
+    name: { $regex: name.trim(), $options: "i" },
+  });
+  // Step 3. Return a response
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User retrieved successfully", { users }));
+});
