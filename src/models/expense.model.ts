@@ -1,43 +1,15 @@
 import mongoose from "mongoose";
-import type {
-  TExpenseSchema,
-  TSplittedExpenseSchema,
-} from "../types/expense.type.js";
+import type { TExpenseSchema } from "../types/expense.type.js";
 import { ExpenseCategory } from "../constants/expense.constant.js";
+import { ExpenseModel, UserModel } from "../constants/global.constant.js";
 
-// Splits Schema
-const SplitsSchema = new mongoose.Schema<TSplittedExpenseSchema>({
-  splittedFor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: [true, "UserId is required!"],
-  },
-  splittedAmount: {
-    type: Number,
-    required: [true, "Splitted amount is required!"],
-    min: [0, "Splitted amount cannot be negative!"],
-  },
-  splittedDescription: {
-    type: String,
-    minLength: [2, "Splitted description required at least 2 characters!"],
-    maxLength: [
-      200,
-      "Splitted description doesn't required more than 20 characters!",
-    ],
-  },
-  isSplittedSettled: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-// Expense Schema
+// EXPENSE SCHEMA
 const ExpenseSchema = new mongoose.Schema<TExpenseSchema>(
   {
-    userId: {
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "UserId is required!"],
+      ref: UserModel,
+      required: [true, "CreatedBy is required!"],
     },
     amount: {
       type: Number,
@@ -48,10 +20,7 @@ const ExpenseSchema = new mongoose.Schema<TExpenseSchema>(
       type: String,
       required: [true, "Description is required!"],
       minlength: [2, "Description required at least 2 characters!"],
-      maxlength: [
-        200,
-        "Description doesn't required more than 200 characters!",
-      ],
+      maxlength: [200, "Description can't contain more than 200 characters!"],
       trim: true,
     },
     category: {
@@ -64,13 +33,21 @@ const ExpenseSchema = new mongoose.Schema<TExpenseSchema>(
       required: [true, "IsPersonal is required!"],
       default: true,
     },
-    splits: [SplitsSchema],
     isSettled: {
       type: Boolean,
       default: false,
     },
+    splits: [
+      {
+        splittedFor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: UserModel,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
 
-export const Expense = mongoose.model("Expense", ExpenseSchema);
+// EXPENSE MODEL
+export const Expense = mongoose.model(ExpenseModel, ExpenseSchema);

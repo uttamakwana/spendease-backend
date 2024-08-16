@@ -6,9 +6,9 @@ const isValueEmpty = (value: unknown): value is null | undefined | "" => {
 };
 
 // does: check if anything is empty or not
-export const isAnythingEmpty = (...values: unknown[]): boolean => {
-  return values.some(isValueEmpty);
-};
+// export const isAnythingEmpty = (...values: unknown[]): boolean => {
+//   return values.some(isValueEmpty);
+// };
 
 // does: check if everything is empty or not
 export const isEverythingEmpty = (...values: unknown[]): boolean => {

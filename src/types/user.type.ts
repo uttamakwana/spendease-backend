@@ -1,44 +1,30 @@
 import type { Document, ObjectId } from "mongoose";
 
+// SCHEMA TYPE
 export type TUserSchema = {
   _id: ObjectId;
   name: string;
   email: string;
   avatar: string;
   password: string;
-  friendRequests: Array<TFriendRequestsSchema>;
-  settleExpenseRequests: Array<TSettleExpenseRequestsSchema>;
-  friends: Array<TFriendSchema>;
   refreshToken?: string;
   generateAccessToken: () => string;
   generateRefreshToken: () => string;
   isPasswordCorrect: (password: TUserSchema["password"]) => Promise<boolean>;
 } & Document;
 
-export type TFriendRequestsSchema = {
-  requestedBy: ObjectId;
-} & Partial<Document>;
-
-export type TFriendSchema = {
-  userId: ObjectId;
-} & Partial<Document>;
-
-export type TSettleExpenseRequestsSchema = {
-  requestedBy: ObjectId;
-  expenseId?: ObjectId;
-  isSettleAll: boolean;
-} & Partial<Document>;
-
+// MODEL TYPE
 export type TUserModel = TUserSchema;
 
-export type TUserId = ObjectId;
-
-export type TUserRegisterRequestBody = Pick<
+// API REQUEST TYPE
+// user register
+export type TRegisterUserAPIRequestBody = Pick<
   TUserSchema,
   "name" | "email" | "avatar" | "password"
 >;
 
-export type TUserLoginRequestBody = Pick<TUserSchema, "email" | "password">;
+// user login
+export type TLoginUserAPIRequestBody = Pick<TUserSchema, "email" | "password">;
 
 export type TUserSendRequestBody = {
   receiverId: ObjectId;
@@ -52,7 +38,6 @@ export type TUserRejectRequestBody = {
   requestedBy: ObjectId;
 };
 
-export type TUserUpdateRequestBody = Pick<
-  TUserSchema,
-  "name" | "email" | "password"
+export type TUserUpdateRequestBody = Partial<
+  Pick<TUserSchema, "name" | "email" | "password">
 >;

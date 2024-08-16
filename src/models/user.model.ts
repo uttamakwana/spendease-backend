@@ -1,65 +1,19 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt, { type Secret } from "jsonwebtoken";
-import { SALT_ROUND } from "../constants/global.constant.js";
+import { SALT_ROUND, UserModel } from "../constants/global.constant.js";
 import { ApiError } from "../utils/errorHandling.util.js";
-import { isAnythingEmpty } from "../utils/validation.util.js";
-import type {
-  TFriendRequestsSchema,
-  TFriendSchema,
-  TSettleExpenseRequestsSchema,
-  TUserModel,
-  TUserSchema,
-} from "../types/user.type.js";
+import type { TUserModel, TUserSchema } from "../types/user.type.js";
 
-// Friend Requests Schema
-const FriendRequestsSchema = new mongoose.Schema<TFriendRequestsSchema>(
-  {
-    requestedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-  },
-  { timestamps: true }
-);
-
-// Settle Expense Requests Schema
-const SettleExpenseRequestsSchema =
-  new mongoose.Schema<TSettleExpenseRequestsSchema>(
-    {
-      requestedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      expenseId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Expense",
-      },
-      isSettleAll: {
-        type: Boolean,
-        required: [true, "isSettleAll is required!"],
-      },
-    },
-    { timestamps: true }
-  );
-
-// Friends Schema
-const FriendSchema = new mongoose.Schema<TFriendSchema>(
-  {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  },
-  { timestamps: true }
-);
-
-// User Schema
+// USER SCHEMA
 const UserSchema = new mongoose.Schema<TUserSchema>(
   {
     name: {
       type: String,
       required: [true, "Name is required!"],
       trim: true,
-      min: [3, "Name requires at least 3 characters!"],
-      max: [20, "Name doesn't required more than 20 characters!"],
+      min: [2, "Name requires at least 2 characters!"],
+      max: [30, "Name can't contain more than 30 characters!"],
     },
     email: {
       type: String,
@@ -76,11 +30,8 @@ const UserSchema = new mongoose.Schema<TUserSchema>(
       type: String,
       required: [true, "Password is required!"],
       min: [5, "Password requires at least 5 characters!"],
-      max: [20, "Password doesn't required more than 20 characters!"],
+      max: [20, "Password can't contain more than 20 characters!"],
     },
-    friendRequests: [FriendRequestsSchema],
-    settleExpenseRequests: [SettleExpenseRequestsSchema],
-    friends: [FriendSchema],
     refreshToken: {
       type: String,
       default: "",
@@ -89,8 +40,8 @@ const UserSchema = new mongoose.Schema<TUserSchema>(
   { timestamps: true }
 );
 
-// custom user schema middleware
-// does: the below function executes before user saves but only when password is modifying otherwise it will skip to the next middleware/controller
+// CUSTOM USER SCHEMA MIDDLEWARE
+// does: generate hashed password | 1. User is created for the first time | 2. Password is modified/updated
 UserSchema.pre<TUserSchema>("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -99,7 +50,7 @@ UserSchema.pre<TUserSchema>("save", async function (next) {
   next();
 });
 
-// custom user schema methods
+// CUSTOM USER SCHEMA METHODS
 // does: decrypt the encrypted password and compare with the user input password
 UserSchema.methods.isPasswordCorrect = async function (
   password: TUserSchema["password"]
@@ -112,7 +63,7 @@ UserSchema.methods.generateAccessToken = function () {
   const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
   const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY;
 
-  if (isAnythingEmpty(accessTokenSecret, accessTokenExpiry))
+  if (!accessTokenExpiry || !accessTokenSecret)
     throw new ApiError(500, "Failed to generate access token!");
 
   return jwt.sign(
@@ -131,7 +82,7 @@ UserSchema.methods.generateRefreshToken = function () {
   const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
   const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY;
 
-  if (isAnythingEmpty(refreshTokenSecret, refreshTokenExpiry)) {
+  if (!refreshTokenSecret || !refreshTokenExpiry) {
     throw new ApiError(500, "Failed to generate refresh token!");
   }
   return jwt.sign(
@@ -145,4 +96,5 @@ UserSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const User = mongoose.model<TUserModel>("User", UserSchema);
+// USER MODEL
+export const User = mongoose.model<TUserModel>(UserModel, UserSchema);

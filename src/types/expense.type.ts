@@ -1,24 +1,18 @@
 import type { ObjectId } from "mongoose";
 import type { ExpenseCategory } from "../constants/expense.constant.js";
-import type { TUserId } from "./user.type.js";
-
-export type TExpenseId = ObjectId;
 
 export type TExpenseSchema = {
-  userId: TUserId;
+  createdBy: ObjectId;
   amount: number;
   description: string;
-  isPersonal: boolean;
   category: ExpenseCategory;
-  splits: Array<TSplittedExpenseSchema>;
+  isPersonal: boolean;
   isSettled: boolean;
+  splits: Array<TSplitsSchema>;
 };
 
-export type TSplittedExpenseSchema = {
-  splittedFor: TUserId;
-  splittedAmount: number;
-  splittedDescription: string;
-  isSplittedSettled: boolean;
+export type TSplitsSchema = {
+  splittedFor: ObjectId;
 };
 
 export type TCreatePersonalExpenseRequestBody = Pick<
