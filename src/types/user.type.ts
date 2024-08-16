@@ -17,11 +17,11 @@ export type TUserSchema = {
 export type TUserModel = TUserSchema;
 
 // API REQUEST TYPE
-// user register
+// Register User
 export type TRegisterUserAPIRequestBody = Pick<
   TUserSchema,
   "name" | "email" | "avatar" | "password"
 >;
 
-// user login
+// Login User
 export type TLoginUserAPIRequestBody = Pick<TUserSchema, "email" | "password">;

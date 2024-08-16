@@ -14,7 +14,7 @@ import { isAuth } from "../middlewares/auth.middleware.js";
 // CONSTANTS
 export const userRouter = Router();
 
-// USER ROUTES
+// ROUTES
 // 1. Register | PUBLIC
 userRouter.route("/register").post(upload.single("avatar"), registerUser);
 // 2. Login | PUBLIC

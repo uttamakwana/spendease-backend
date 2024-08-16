@@ -1,6 +1,7 @@
-import type { ObjectId } from "mongoose";
+import type { Document, ObjectId } from "mongoose";
 import type { ExpenseCategory } from "../constants/expense.constant.js";
 
+// EXPENSE SCHEMA TYPE
 export type TExpenseSchema = {
   createdBy: ObjectId;
   amount: number;
@@ -9,62 +10,27 @@ export type TExpenseSchema = {
   isPersonal: boolean;
   isSettled: boolean;
   splits: Array<TSplitsSchema>;
-};
+} & Document;
 
+// EXPENSE MODEL TYPE
+export type TExpenseModel = TExpenseSchema;
+
+// SPLITS SCHEMA TYPE
 export type TSplitsSchema = {
   splittedFor: ObjectId;
 };
 
-export type TCreatePersonalExpenseRequestBody = Pick<
+// API REQUEST TYPES
+// Create Expense
+export type TCreateExpenseAPIRequestBody = Pick<
   TExpenseSchema,
   "amount" | "description" | "category"
 >;
 
-export type TCreateSplitExpenseRequestBody = Pick<
-  TExpenseSchema,
-  "amount" | "description" | "category" | "splits"
->;
-
-export type TUpdatePersonalExpenseRequestBody =
-  TCreatePersonalExpenseRequestBody & {
-    expenseId: TExpenseId;
-  };
-
-export type TUpdateSplitExpenseRequestBody = TCreateSplitExpenseRequestBody & {
-  expenseId: TExpenseId;
-};
-
-export type TDeleteExpenseRequestBody = { expenseId: TExpenseId };
-
-export type TGetAllExpensesOfFriendRequestBody = { targetUserId: ObjectId };
-
-export type TSettleAllExpensesOfFriendRequestBody = {
-  targetUserId: ObjectId;
-};
-
-export type TSettleIndividualExpensesOfFriendRequestBody = {
-  targetUserId: ObjectId;
+// Update Expense
+export type TUpdateExpenseAPIRequestBody = TCreateExpenseAPIRequestBody & {
   expenseId: ObjectId;
 };
 
-export type TSettleAllExpenseRejectRequestBody = {
-  requestedBy: ObjectId;
-};
-
-export type TSettleIndividualExpenseRejectRequestBody = {
-  requestedBy: ObjectId;
-  expenseId: ObjectId;
-};
-
-export type TGetAllExpensesOfFriendResponse = {
-  _id: ObjectId;
-  amount: TExpenseSchema["amount"];
-  description: TExpenseSchema["description"];
-  category: ExpenseCategory;
-  splittedAmount: TSplittedExpenseSchema["splittedAmount"];
-  splittedDescription: TSplittedExpenseSchema["splittedDescription"];
-  isSettled: TSplittedExpenseSchema["isSplittedSettled"];
-  createdAt: Date;
-  updatedAt: Date;
-  isCreatedByYou: boolean;
-};
+// Delete Expense
+export type TDeleteExpenseAPIRequestBody = { expenseId: ObjectId };

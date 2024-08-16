@@ -11,7 +11,7 @@ import {
 // CONSTANTS
 export const friendRequestRouter = Router();
 
-// FRIEND REQUEST ROUTES
+// ROUTES
 // 1. Create/Send Friend Request | PRIVATE
 friendRequestRouter.route("/send").post(isAuth, sendFriendRequest);
 // 2. Accept Friend Request | PRIVATE

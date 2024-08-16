@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import type { TExpenseSchema } from "../types/expense.type.js";
+import type { TExpenseModel, TExpenseSchema } from "../types/expense.type.js";
 import { ExpenseCategory } from "../constants/expense.constant.js";
 import { ExpenseModel, UserModel } from "../constants/global.constant.js";
 
@@ -50,4 +50,7 @@ const ExpenseSchema = new mongoose.Schema<TExpenseSchema>(
 );
 
 // EXPENSE MODEL
-export const Expense = mongoose.model(ExpenseModel, ExpenseSchema);
+export const Expense = mongoose.model<TExpenseModel>(
+  ExpenseModel,
+  ExpenseSchema
+);
