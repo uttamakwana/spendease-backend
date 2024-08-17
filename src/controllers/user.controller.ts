@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 import type {
   TLoginUserAPIRequestBody,
   TRegisterUserAPIRequestBody,
-  TUserUpdateRequestBody,
+  TUserUpdateAPIRequestBody,
 } from "../types/user.type.js";
 import { tryCatch } from "../utils/tryCatch.util.js";
 import { ApiError } from "../utils/errorHandling.util.js";
@@ -170,7 +170,7 @@ export const getUserInfo = tryCatch(async (req, res, next) => {
 // does: update user
 export const updateUser = tryCatch(async (req, res, next) => {
   // Step 1. Get req body type
-  const { name, email, password }: TUserUpdateRequestBody = req.body;
+  const { name, email, password }: TUserUpdateAPIRequestBody = req.body;
   const { _id } = req.user;
   // Step 2. Check if the required data is present or not
   if (!name && !email && !password) {

@@ -10,6 +10,7 @@ export type TExpenseSchema = {
   isPersonal: boolean;
   isSettled: boolean;
   splits: Array<TSplitsSchema>;
+  totalSplittedAmount: number;
 } & Document;
 
 // EXPENSE MODEL TYPE
@@ -34,3 +35,17 @@ export type TUpdateExpenseAPIRequestBody = TCreateExpenseAPIRequestBody & {
 
 // Delete Expense
 export type TDeleteExpenseAPIRequestBody = { expenseId: ObjectId };
+
+// List Expense Analysis
+export type TListExpensesAnalysis = {
+  count: {
+    personal: number;
+    split: number;
+    total: number;
+  };
+  amount: {
+    personal: number;
+    split: number;
+    total: number;
+  };
+};

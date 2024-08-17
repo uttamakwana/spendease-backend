@@ -6,6 +6,7 @@ import { isValidCategory } from "../utils/validation.util.js";
 import type {
   TCreateExpenseAPIRequestBody,
   TDeleteExpenseAPIRequestBody,
+  TListExpensesAnalysis,
   TUpdateExpenseAPIRequestBody,
 } from "../types/expense.type.js";
 
@@ -54,6 +55,7 @@ export const updateExpense = tryCatch(async (req, res, next) => {
     description,
     category,
   }: TUpdateExpenseAPIRequestBody = req.body;
+  const { _id: currentUserId } = req.user;
 
   // 2. Check if everything necessary is present
   if (!expenseId) {
@@ -72,6 +74,12 @@ export const updateExpense = tryCatch(async (req, res, next) => {
   const expense = await Expense.findById(expenseId);
   if (!expense) {
     return next(new ApiError(400, "Expense not found!"));
+  }
+  // 4. Check if the expense is created by current user
+  if (expense.createdBy.toString() !== currentUserId.toString()) {
+    return next(
+      new ApiError(400, "You are not authorized to update this expense!")
+    );
   }
   if (amount) expense.amount = amount;
   if (description) expense.description = description;
@@ -106,6 +114,7 @@ export const deleteExpense = tryCatch(async (req, res, next) => {
   if (!expense) {
     return next(new ApiError(400, "Expense not found!"));
   }
+  await expense.deleteOne({ _id: expenseId });
   // Step 4. Return a response
   return res
     .status(200)
@@ -116,7 +125,7 @@ export const deleteExpense = tryCatch(async (req, res, next) => {
 // route: api/v1/expense/update/split
 // PRIVATE
 // does: get all expenses of users
-export const getAllExpenses = tryCatch(async (req, res, next) => {
+export const listExpenses = tryCatch(async (req, res, next) => {
   // 1. Get the data
   const { _id: currentUserId } = req.user;
   // 2. Check if the valid data is present or not
@@ -125,9 +134,39 @@ export const getAllExpenses = tryCatch(async (req, res, next) => {
   // ATTENTION: We can send personal and splitted expenses from here also
   // const personalExpenses = expenses.filter((expense) => expense.isPersonal);
   // const splittedExpenses = expenses.filter((expense) => !expense.isPersonal);
+  const analysis: TListExpensesAnalysis = expenses.reduce(
+    (acc, currentValue) => {
+      if (currentValue.isPersonal) {
+        acc.count.personal += 1;
+        acc.amount.personal += currentValue.amount;
+      } else {
+        acc.count.split += 1;
+        acc.amount.split +=
+          currentValue.amount - currentValue.totalSplittedAmount;
+      }
+      return acc;
+    },
+    {
+      count: {
+        personal: 0,
+        split: 0,
+        total: 0,
+      },
+      amount: {
+        personal: 0,
+        split: 0,
+        total: 0,
+      },
+    }
+  );
+
+  analysis.count.total = analysis.count.personal + analysis.count.split;
+  analysis.amount.total = analysis.amount.personal + analysis.amount.split;
+
   return res.status(200).json(
     new ApiResponse(200, "Expenses retrieved successfully!", {
       expenses,
+      analysis,
     })
   );
 });

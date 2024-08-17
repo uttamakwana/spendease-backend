@@ -21,4 +21,4 @@ friendRequestRouter.route("/list").get(isAuth, listFriendRequests);
 // 4. Reject Friend Request | PRIVATE
 friendRequestRouter.route("/reject").delete(isAuth, rejectFriendRequest);
 // 5. Remove Friend Request | PRIVATE
-friendRequestRouter.route("/remove").post(isAuth, removeFriendRequest);
+friendRequestRouter.route("/remove").delete(isAuth, removeFriendRequest);

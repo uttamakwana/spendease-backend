@@ -42,7 +42,8 @@ export const deleteOnCloudinary = async (
     }
 
     const cloudinaryUrlPublicId = getPublicIdFromUrl(cloudinaryUrl);
-    await cloudinary.uploader.destroy(cloudinaryUrlPublicId);
+    const response = await cloudinary.uploader.destroy(cloudinaryUrlPublicId);
+    console.log(response);
   } catch (error) {
     console.log("Couldn't able to delete previous cloudinary image", error);
     throw new ApiError(

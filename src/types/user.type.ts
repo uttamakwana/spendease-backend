@@ -25,3 +25,7 @@ export type TRegisterUserAPIRequestBody = Pick<
 
 // Login User
 export type TLoginUserAPIRequestBody = Pick<TUserSchema, "email" | "password">;
+
+export type TUserUpdateAPIRequestBody = Partial<
+  Pick<TUserSchema, "name" | "email" | "password">
+>;

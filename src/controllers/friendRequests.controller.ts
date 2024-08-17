@@ -26,7 +26,7 @@ export const sendFriendRequest = tryCatch(async (req, res, next) => {
   }
 
   // Step 3. _id and receiverId can't be equal
-  if (senderId === receiverId) {
+  if (senderId.toString() === receiverId.toString()) {
     return next(new ApiError(400, "Please provide valid ids!"));
   }
 
@@ -79,23 +79,22 @@ export const sendFriendRequest = tryCatch(async (req, res, next) => {
 export const acceptFriendRequest = tryCatch(async (req, res, next) => {
   // Step 1. Get req body data
   // ATTENTION: here we are treating the receiverId as senderId because whenever user is accepting someone's request the person who has sent the request become the sender of the request
-  const { friendRequestSenderId }: TAcceptFriendRequestAPIRequestBody =
-    req.body;
+  const { senderId }: TAcceptFriendRequestAPIRequestBody = req.body;
   const { _id: currentUserId } = req.user;
   // Step 2. Check for required data
-  if (!friendRequestSenderId) {
-    return next(new ApiError(400, "FriendRequestSenderId is required!"));
+  if (!senderId) {
+    return next(new ApiError(400, "senderId is required!"));
   }
 
-  // Step 3. currentUserId and friendRequestSenderId can't be equal
-  if (friendRequestSenderId === currentUserId) {
+  // Step 3. currentUserId and senderId can't be equal
+  if (senderId.toString() === currentUserId.toString()) {
     return next(new ApiError(400, "Please provide valid ids!"));
   }
 
   // Step 4. Find the both users
   const [sender, receiver] = await Promise.all([
     await User.findById(currentUserId),
-    await User.findById(friendRequestSenderId),
+    await User.findById(senderId),
   ]);
   if (!sender || !receiver) {
     return next(new ApiError(400, "Sender or receiver not found!"));
@@ -103,15 +102,25 @@ export const acceptFriendRequest = tryCatch(async (req, res, next) => {
   // Step 5. Check for friendship status between users
   const isFriendshipExist = await Friend.findOne({
     $or: [
-      { user1: currentUserId, user2: friendRequestSenderId },
-      { user1: friendRequestSenderId, user2: friendRequestSenderId },
+      { user1: currentUserId, user2: senderId },
+      { user1: senderId, user2: senderId },
     ],
   });
   if (isFriendshipExist) {
     return next(new ApiError(400, "Friendship exist between users!"));
   }
-  // Step 4. Create new friendship
-  await Friend.create({ user1: currentUserId, user2: friendRequestSenderId });
+  // Step 6. Check if friend request exists or not
+  const existingFriendRequest = await FriendRequest.findOne({
+    senderId: senderId,
+    receiverId: currentUserId,
+  });
+  if (!existingFriendRequest) {
+    return next(new ApiError(400, "Friend request does not exist!"));
+  }
+  // Step 7. Create new friendship
+  await Friend.create({ user1: currentUserId, user2: senderId });
+  // Step 8. Remove existing friend request
+  await FriendRequest.findByIdAndDelete(existingFriendRequest._id);
   // Step 5. Return a response
   return res
     .status(200)
@@ -141,13 +150,12 @@ export const listFriendRequests = tryCatch(async (req, res, next) => {
 // does: reject friend requests
 export const rejectFriendRequest = tryCatch(async (req, res, next) => {
   // Step 1. Get req body data
-  const { friendRequestId }: TRejectFriendRequestAPIRequestBody = req.body;
+  const { senderId }: TRejectFriendRequestAPIRequestBody = req.body;
   const { _id: currentUserId } = req.user;
 
   // Step 2. Find the request and check if you have permission to delete
   const friendRequest = await FriendRequest.findOne({
-    _id: friendRequestId,
-    $or: [{ senderId: currentUserId, receiverId: currentUserId }],
+    $and: [{ senderId: senderId, receiverId: currentUserId }],
   });
   if (!friendRequest) {
     return next(
@@ -159,7 +167,7 @@ export const rejectFriendRequest = tryCatch(async (req, res, next) => {
   }
 
   // Step 3. Delete friend request
-  await FriendRequest.deleteOne({ _id: friendRequestId });
+  await FriendRequest.deleteOne({ _id: friendRequest._id });
 
   // Step 4. Return a response
   return res
@@ -173,24 +181,23 @@ export const rejectFriendRequest = tryCatch(async (req, res, next) => {
 // does: remove friend requests
 export const removeFriendRequest = tryCatch(async (req, res, next) => {
   // Step 1. Get req body data
-  const {
-    friendRequestId,
-    friendRequestReceiverId,
-  }: TRemoveFriendRequestAPIRequestBody = req.body;
+  const { receiverId }: TRemoveFriendRequestAPIRequestBody = req.body;
   const { _id: currentUserId } = req.user;
 
   // Step 2. Find the request and check if you have permission to delete
   const friendRequest = await FriendRequest.findOne({
-    _id: friendRequestId,
     senderId: currentUserId,
-    receiverId: friendRequestReceiverId,
+    receiverId: receiverId,
   });
   if (!friendRequest) {
     return next(new ApiError(400, "Friend request not found"));
   }
 
   // Step 3. Delete friend request
-  await FriendRequest.deleteOne({ _id: friendRequestId });
+  await FriendRequest.deleteOne({
+    senderId: currentUserId,
+    receiverId: receiverId,
+  });
 
   // Step 4. Return a response
   return res

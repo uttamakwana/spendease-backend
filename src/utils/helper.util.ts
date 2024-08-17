@@ -1,8 +1,6 @@
-import type { TSplittedExpenseSchema } from "../types/expense.type.js";
+import type { TSplitsSchema } from "../types/expense.type.js";
 
-export const hasDuplicateSplittedForId = (
-  splits: TSplittedExpenseSchema[]
-): boolean => {
+export const hasDuplicateSplittedForId = (splits: TSplitsSchema[]): boolean => {
   const seen = new Set<string>();
 
   for (const split of splits) {

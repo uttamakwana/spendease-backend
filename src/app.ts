@@ -19,15 +19,21 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // ROUTES
-// 1. User Routes
+// 1. User Router
 import { userRouter } from "./routes/user.route.js";
 app.use("/api/v1/user", userRouter);
-// 2. Friend Request Routes
+// 2. Friend Request Router
 import { friendRequestRouter } from "./routes/friendRequest.route.js";
 app.use("/api/v1/friendRequest", friendRequestRouter);
-// 2. Expense Routes
+// 3. Expense Router
 import { expenseRouter } from "./routes/expense.route.js";
 app.use("/api/v1/expense", expenseRouter);
+// 4. Split Expense Router
+import { splitExpenseRouter } from "./routes/splitExpense.route.js";
+import { friendRouter } from "./routes/friend.route.js";
+app.use("/api/v1/splitExpense", splitExpenseRouter);
+// 5. Friend Router
+app.use("/api/v1/friend", friendRouter);
 
 // error middleware
 app.use(errorHandler);

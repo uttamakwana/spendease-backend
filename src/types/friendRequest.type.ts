@@ -17,16 +17,15 @@ export type TSendFriendRequestAPIRequestBody = {
 
 // Accept Friend Request
 export type TAcceptFriendRequestAPIRequestBody = {
-  friendRequestSenderId: ObjectId;
+  senderId: ObjectId;
 };
 
 // Reject Friend Request
 export type TRejectFriendRequestAPIRequestBody = {
-  friendRequestId: ObjectId;
+  senderId: ObjectId;
 };
 
 // Remove Friend Request
 export type TRemoveFriendRequestAPIRequestBody = {
-  friendRequestId: ObjectId;
-  friendRequestReceiverId: ObjectId;
+  receiverId: ObjectId;
 };
