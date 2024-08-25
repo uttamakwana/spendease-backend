@@ -29,3 +29,7 @@ export type TLoginUserAPIRequestBody = Pick<TUserSchema, "email" | "password">;
 export type TUserUpdateAPIRequestBody = Partial<
   Pick<TUserSchema, "name" | "email" | "password">
 >;
+
+export type TGenerateNewAccessTokenRequestBody = {
+  _id: ObjectId;
+};

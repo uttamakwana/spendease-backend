@@ -31,3 +31,5 @@ userRouter.route("/update").put(isAuth, updateUser);
 userRouter
   .route("/update/avatar")
   .patch(isAuth, upload.single("avatar"), updateUserAvatar);
+// 8. Generate Refresh Token | PRIVATE
+userRouter.route("/refreshToken").get();

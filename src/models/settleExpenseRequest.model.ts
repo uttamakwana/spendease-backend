@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
-import type { TSettleExpenseRequestSchema } from "../types/settleExpenseRequest.type.js";
+import type {
+  TSettleExpenseRequestSchema,
+  TSettleExpenseRequestSchemaModel,
+} from "../types/settleExpenseRequest.type.js";
 import {
   ExpenseModel,
   SettleExpenseRequestModel,
@@ -31,7 +34,8 @@ const SettleExpenseRequestSchema =
   );
 
 // SETTLE EXPENSE REQUEST MODEL
-export const SettleExpenseRequest = mongoose.model(
-  SettleExpenseRequestModel,
-  SettleExpenseRequestSchema
-);
+export const SettleExpenseRequest =
+  mongoose.model<TSettleExpenseRequestSchemaModel>(
+    SettleExpenseRequestModel,
+    SettleExpenseRequestSchema
+  );

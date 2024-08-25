@@ -30,10 +30,13 @@ import { expenseRouter } from "./routes/expense.route.js";
 app.use("/api/v1/expense", expenseRouter);
 // 4. Split Expense Router
 import { splitExpenseRouter } from "./routes/splitExpense.route.js";
-import { friendRouter } from "./routes/friend.route.js";
 app.use("/api/v1/splitExpense", splitExpenseRouter);
 // 5. Friend Router
+import { friendRouter } from "./routes/friend.route.js";
 app.use("/api/v1/friend", friendRouter);
+// 6. Settle Expense Router
+import { settleExpenseRequestRouter } from "./routes/settleExpenseRequest.route.js";
+app.use("/api/v1/settleExpenseRequest", settleExpenseRequestRouter);
 
 // error middleware
 app.use(errorHandler);

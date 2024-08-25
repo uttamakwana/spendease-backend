@@ -1,5 +1,6 @@
 import { User } from "../models/user.model.js";
 import type {
+  TGenerateNewAccessTokenRequestBody,
   TLoginUserAPIRequestBody,
   TRegisterUserAPIRequestBody,
   TUserUpdateAPIRequestBody,
@@ -13,6 +14,7 @@ import {
 } from "../utils/cloudinary.util.js";
 import { generateTokens } from "../utils/generateTokens.util.js";
 import { cookieOptions } from "../constants/global.constant.js";
+import jwt, { type JwtPayload, type Secret } from "jsonwebtoken";
 
 // 1. POST
 // route: user/register
@@ -251,4 +253,49 @@ export const searchUsers = tryCatch(async (req, res, next) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "User retrieved successfully", { users }));
+});
+
+// 9. GET
+// route: user/refreshToken
+// PUBLIC
+// does: generate new access token if user has already a refresh token stored in database
+export const generateNewAccessToken = tryCatch(async (req, res, next) => {
+  // Step 1. Get the req body data
+  const { _id }: TGenerateNewAccessTokenRequestBody = req.body;
+  // Step 2. Check if required data is present
+  if (!_id) {
+    return next(new ApiError(400, "_id is required!"));
+  }
+  // Step 3. Find the user with its refreshToken
+  const user = await User.findById(_id);
+  // Step 4. If refreshToken is present generate new Access Token
+  if (!user) {
+    return next(new ApiError(400, "User not found!"));
+  }
+  if (!user.refreshToken) {
+    return next(new ApiError(400, "Kindly login once again!"));
+  }
+  let decodedToken: JwtPayload | string;
+  try {
+    decodedToken = jwt.verify(
+      user.refreshToken,
+      process.env.ACCESS_TOKEN_SECRET as Secret
+    ) as JwtPayload;
+  } catch (error) {
+    throw new ApiError(401, "Invalid access token!");
+  }
+
+  if (_id.toString() !== decodedToken._id) {
+    return next(new ApiError(400, "Invalid token!"));
+  }
+  const newAccessToken = user.generateAccessToken();
+  if (!newAccessToken) {
+    return next(new ApiError(400, "Failed to refresh access token!"));
+  }
+  // Step 5. Return new Access Token
+  return res.status(200).json(
+    new ApiResponse(200, "New access token is generated!", {
+      accessToken: newAccessToken,
+    })
+  );
 });
