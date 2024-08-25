@@ -17,3 +17,16 @@ export type TSendSettleExpenseRequestAPIRequestBody = {
   expenseId?: ObjectId;
   isSettleAll: boolean;
 };
+
+export type TRemoveSettleExpenseRequestAPIRequestBody = {
+  settleExpenseRequestId: ObjectId;
+};
+
+export type TRejectSettleExpenseRequestAPIRequestBody = {
+  settleExpenseRequestId: ObjectId;
+};
+
+export type TAcceptSettleExpenseRequestAPIRequestBody = {
+  settleExpenseRequestId: ObjectId;
+  expenseId: ObjectId;
+};
